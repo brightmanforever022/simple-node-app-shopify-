@@ -48,7 +48,7 @@ router.post('/', async (req, res) => {
 // Start command
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
-  await writeSettings(JSON.stringify(settings));
+  // await writeSettings(JSON.stringify(settings));
   setTimeout(dailyProcess(), 5000)
   dailyTimer = setInterval(dailyProcess, 86400000)
   res.redirect('/')
