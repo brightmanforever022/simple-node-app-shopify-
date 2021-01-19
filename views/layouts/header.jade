@@ -1,0 +1,18 @@
+block header
+  #header
+    ul.header_container
+      li
+        if page=='index'
+          a.active(href="/") Home
+        else
+          a(href="/") Home
+      li
+        if page == 'start'
+          a.active(href="/starttimer") Start Timer
+        else
+          a(href="/starttimer") Start Timer
+      li
+        if page == 'stop'
+          a.active(href="/stoptimer") Stop Timer
+        else
+          a(href="/stoptimer") Stop Timer

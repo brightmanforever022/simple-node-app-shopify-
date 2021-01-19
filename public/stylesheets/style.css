@@ -1,0 +1,159 @@
+body {
+  padding: 0;
+  margin: 0;
+}
+.container {
+  margin-top: 20px;
+  margin-left: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+/** Header */
+#header {
+  padding: 20px 0 9px 50px;
+  background: #333;
+}
+ul.header_container {
+  margin: 0;
+  padding: 0;
+}
+ul.header_container li {
+  float: left;
+  margin-right: 20px;
+  list-style: none;
+}
+ul.header_container li:last-child {
+  margin-right: 0;
+}
+
+ul.header_container:after {
+  content: '';
+  display: block;
+  clear: both;
+}
+ul.header_container li a {
+  padding: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  font-size: 20px;
+  text-decoration: none;
+  color: #d62bd1;
+}
+ul.header_container li a.active {
+  background: #e2e2e2;
+}
+
+/* footer */
+#footer {
+  padding: 0;
+  background-color: #333;
+  width: 100%;
+  bottom: 0;
+  position: fixed;
+  text-align: center;
+}
+
+/** stores page */
+
+.buttons span {
+  display: block;
+  margin-right: 20px;
+  float: left;
+}
+.buttons span:last-child {
+  margin-right: 0;
+}
+.buttons:after {
+  content: '';
+  display: block;
+  clear: both;
+}
+button.delete-all {
+  display: block;
+  margin-bottom: 30px;
+  padding: 10px;
+  color: red;
+  cursor: pointer;
+}
+
+table, tr {
+  border: 1px solid black;
+}
+table {
+  width: 1200px;
+  border-collapse: collapse;
+}
+table tr {
+  height: 30px;
+  border-bottom: 1px solid #EEE;
+}
+table tr td {
+  padding: 10px;
+}
+table a {
+  text-decoration: none;
+  cursor: pointer;
+}
+table a:hover {
+  color: red;
+  text-decoration: underline;
+}
+
+/* Stores add page */
+.add-store form {
+  border: 1px solid #EEE;
+  padding: 50px;
+}
+.add-store form .input {
+  margin-bottom: 20px;
+}
+.add-store form .input span {
+  display: block;
+  margin-bottom: 5px;
+}
+.add-store form .input input {
+  display: block;
+  width: 300px;
+  height: 24px;
+}
+.add-store form .actions input {
+  padding: 10px;
+  width: 120px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Products page */
+#product-title {
+  width: 200px;
+  height: 24px;
+  display: block;
+}
+#search-button {
+  width: 120px;
+  height: 24px;
+  font-size: 16px;
+  text-align: center;
+  margin-top: 15px;
+}
+.products_list {
+  margin-top: 30px;
+}
+
+.success_message {
+  padding: 20px;
+  color: red;
+}
+
+form .input, form .actions {
+  margin: 20px;
+}
+
+form .input input {
+  margin-left: 30px;
+  padding: 10px 15px;
+}

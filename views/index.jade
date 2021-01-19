@@ -1,0 +1,16 @@
+extends layouts/layout
+
+block content
+  .container
+    h1= title
+    form(name="add-estimation", method="post", action="/")
+        div.input
+            span.label Main Tag
+            input(type="text", name="duringTag", value=data.duringTag)
+        div.input
+            span.label Ended Tag
+            input(type="text", name="endedTag", value=data.endedTag)
+        div.actions
+            input(type="submit", value="Update Tag")
+
+    p.success_message= message

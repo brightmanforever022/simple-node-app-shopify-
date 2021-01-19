@@ -4,7 +4,11 @@ var router = express.Router();
 require('dotenv').config()
 
 var dailyTimer = null;
-var settings = {}
+var settings = {
+  duringTag: 'countdown',
+  endedTag: 'countdown-end',
+  status: 'stopped'
+}
 
 const Shopify = require('shopify-api-node')
 const shopify = new Shopify({
@@ -14,7 +18,7 @@ const shopify = new Shopify({
   timeout: 50000,
   autoLimit: {
       calls: 2,
-      interval: 1000,
+      interval: 2000,
       bucketSize: 35
   }
 });
@@ -26,19 +30,28 @@ router.get('/', async (req, res) => {
       console.log(err)
     } else {
       settings = JSON.parse(buf.toString());
-      res.status(200).json(settings);
+      res.render('index', {page: 'index', data: settings, message: req.flash('message')});
       console.log(settings.endTag);
     }
   });
 });
 
+router.post('/', async (req, res) => {
+  const data = JSON.parse(JSON.stringify(req.body))
+  settings.duringTag = data.duringTag;
+  settings.endedTag = data.endedTag;
+  await writeSettings(JSON.stringify(settings));
+  req.flash('message', 'Changed Settings');
+  res.redirect('/')
+})
+
 // Start command
 router.get('/startTimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings(JSON.stringify(settings));
-  res.redirect('/')
   // const productList = await getProductList(shopify);
   // dailyTimer = setInterval(updateTags(productList), 86400000)
+  res.redirect('/')
 })
 
 // Stop command
@@ -83,13 +96,13 @@ function updateTags(products) {
         let productTags = pr.tags.split(', ')
         
         if (currentDate.getTime() < metaDate.getTime()) { // during countdown
-          if(!productTags.includes('countdown')) {
-            productTags.push('countdown');
+          if(!productTags.includes(settings.duringTag)) {
+            productTags.push(settings.duringTag);
           }
         } else { // ended of countdown
-          productTags.remove('countdown');
-          if(!productTags.includes('countdown-end')) {
-            productTags.push('countdown-end');
+          productTags.remove(settings.duringTag);
+          if(!productTags.includes(settings.endedTag)) {
+            productTags.push(settings.endedTag);
           }
         }
         shopify.product.update(pr.id, {
