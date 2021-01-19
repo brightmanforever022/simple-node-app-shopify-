@@ -49,7 +49,7 @@ router.post('/', async (req, res) => {
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings(JSON.stringify(settings));
-  dailyProcess()
+  setTimeout(dailyProcess(), 5000)
   dailyTimer = setInterval(dailyProcess, 86400000)
   res.redirect('/')
 })
