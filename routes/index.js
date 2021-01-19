@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
       console.log(err)
     } else {
       settings = JSON.parse(buf.toString());
-      res.render('index', {page: 'index', data: settings, message: req.flash('message')});
+      res.render('index', {page: 'index', data: settings});
       console.log(settings.endTag);
     }
   });
