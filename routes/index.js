@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
 })
 
 // Start command
-router.get('/startTimer', async (req, res) => {
+router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings(JSON.stringify(settings));
   dailyProcess()
@@ -55,7 +55,7 @@ router.get('/startTimer', async (req, res) => {
 })
 
 // Stop command
-router.get('/stopTimer', async (req, res) => {
+router.get('/stoptimer', async (req, res) => {
   settings.status = 'stopped';
   await writeSettings(JSON.stringify(settings));
   clearInterval(dailyTimer)
