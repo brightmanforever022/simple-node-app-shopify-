@@ -2,7 +2,7 @@ extends layouts/layout
 
 block content
   .container
-    h1= title
+    h1= "The process is " + data.status
     form(name="add-estimation", method="post", action="/")
         div.input
             span.label Main Tag

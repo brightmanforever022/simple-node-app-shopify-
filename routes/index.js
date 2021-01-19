@@ -49,8 +49,7 @@ router.post('/', async (req, res) => {
 router.get('/startTimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings(JSON.stringify(settings));
-  // const productList = await getProductList(shopify);
-  // dailyTimer = setInterval(updateTags(productList), 86400000)
+  dailyTimer = setInterval(dailyProcess, 86400000)
   res.redirect('/')
 })
 
@@ -72,6 +71,11 @@ async function writeSettings(data) {
       return true
     }
   })
+}
+
+async function dailyProcess() {
+  const productList = await getProductList(shopify);
+  updateTags(productList)
 }
 
 async function getProductList() {
