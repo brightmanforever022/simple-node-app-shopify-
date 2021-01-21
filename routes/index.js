@@ -2,6 +2,8 @@ var fs = require("fs");
 var express = require('express');
 var router = express.Router();
 require('dotenv').config()
+var mysql = require('mysql');
+var nodemailer = require('nodemailer');
 
 var dailyTimer = null;
 var settings = {
@@ -23,32 +25,37 @@ const shopify = new Shopify({
   }
 });
 
+var connection = mysql.createConnection(process.env.CLEARDB_DATABASE_URL)
+
 /* GET home page. */
 router.get('/', async (req, res) => {
-  fs.readFile("data.json", function(err, buf) {
+  connection.query("SELECT * FROM settings", (err, results) => {
     if (err) {
       console.log(err)
     } else {
-      settings = JSON.parse(buf.toString());
+      settings = {
+        duringTag: results[0].during_tag,
+        endedTag: results[0].ended_tag,
+        status: results[0].status ? "started" : "stopped"
+      }
       res.render('index', {page: 'index', data: settings});
-      console.log(settings.endTag);
+      console.log(results[0]);
     }
-  });
+  })
 });
 
 router.post('/', async (req, res) => {
   const data = JSON.parse(JSON.stringify(req.body))
   settings.duringTag = data.duringTag;
   settings.endedTag = data.endedTag;
-  await writeSettings(JSON.stringify(settings));
-  req.flash('message', 'Changed Settings');
+  await updateSettings();
   res.redirect('/')
 })
 
 // Start command
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
-  // await writeSettings(JSON.stringify(settings));
+  await writeSettings();
   setTimeout(dailyProcess, 5000)
   dailyTimer = setInterval(dailyProcess, 86400000)
   res.redirect('/')
@@ -57,13 +64,14 @@ router.get('/starttimer', async (req, res) => {
 // Stop command
 router.get('/stoptimer', async (req, res) => {
   settings.status = 'stopped';
-  await writeSettings(JSON.stringify(settings));
+  await writeSettings();
   clearInterval(dailyTimer)
   res.redirect('/')
 })
 
 async function writeSettings(data) {
-  fs.writeFile("data.json", data, (err) => {
+  const settingStatus = settings.status === 'stopped' ? 0 : 1;
+  connection.query("UPDATE settings SET during_tag=?, ended_tag=?, status=?", [settings.duringTag, settings.endedTag, settingStatus], (err, results) => {
     if (err) {
       console.log(err);
       return false
@@ -75,8 +83,31 @@ async function writeSettings(data) {
 }
 
 async function dailyProcess() {
-  const productList = await getProductList(shopify);
-  updateTags(productList)
+  try {
+    const productList = await getProductList(shopify);
+    updateTags(productList)
+  } catch (error) {
+    var transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SERVICE_MAIL_ADDRESS,
+        pass: process.env.SERVICE_MAIL_PASSWORD
+      }
+    });
+    var mailOptions = {
+      from: process.env.FROM_EMAIL,
+      to: process.env.TO_EMAIL,
+      subject: 'error generated',
+      text: 'Please check the app related with the tag updating! There are some errors!'
+    };
+    transporter.sendMail(mailOptions, function(error, info){
+      if (error) {
+        console.log(error);
+      } else {
+        console.log('Email sent: ' + info.response);
+      }
+    });    
+  }
 }
 
 async function getProductList() {
