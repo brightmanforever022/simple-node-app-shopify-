@@ -3,7 +3,7 @@ var fs = require("fs");
 var express = require('express');
 var router = express.Router();
 var nodemailer = require('nodemailer');
-var schedule = require('node-schedule');
+var CronJob = require('cron').CronJob;
 
 var dailyJob;
 var settings = {
@@ -60,10 +60,14 @@ router.post('/', async (req, res) => {
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
-  dailyJob = schedule.scheduleJob('0 0 * * *', () => {
-    const productList = await getProductList(shopify);
-    updateTags(productList);
-  });
+  dailyJob = new CronJob(
+    '0 0 * * 1', //cron time
+    dailyProcess, //replace with your function that you want to call
+    null, //oncomplete
+    false, //start flag
+    'America/Los_Angeles',// timezone
+  );
+  dailyJob.start();
   res.redirect('/');
 })
 
@@ -71,7 +75,7 @@ router.get('/starttimer', async (req, res) => {
 router.get('/stoptimer', async (req, res) => {
   settings.status = 'stopped';
   await writeSettings();
-  dailyJob.cancel();
+  dailyJob.stop();
   res.redirect('/');
 })
 
@@ -91,15 +95,15 @@ async function writeSettings() {
   return true;
 }
 
-// async function dailyProcess() {
-//   try {
-//     const productList = await getProductList(shopify);
-//     updateTags(productList);
-//   } catch (error) {
-//     console.log('daily process error: ', error);
-//     sendMail();
-//   }
-// }
+async function dailyProcess() {
+  try {
+    const productList = await getProductList(shopify);
+    updateTags(productList);
+  } catch (error) {
+    console.log('daily process error: ', error);
+    sendMail();
+  }
+}
 
 async function getProductList() {
   let params = { limit: 50, fields: ['id', 'handle', 'tags'] };
