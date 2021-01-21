@@ -3,8 +3,9 @@ var fs = require("fs");
 var express = require('express');
 var router = express.Router();
 var nodemailer = require('nodemailer');
+var schedule = require('node-schedule');
 
-var dailyTimer;
+var dailyJob;
 var settings = {
   duringTag: 'countdown',
   endedTag: 'countdown-end',
@@ -59,8 +60,10 @@ router.post('/', async (req, res) => {
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
-  dailyProcess();
-  dailyTimer = setInterval(dailyProcess, 86400000);
+  dailyJob = schedule.scheduleJob('0 0 * * *', () => {
+    const productList = await getProductList(shopify);
+    updateTags(productList);
+  });
   res.redirect('/');
 })
 
@@ -68,7 +71,7 @@ router.get('/starttimer', async (req, res) => {
 router.get('/stoptimer', async (req, res) => {
   settings.status = 'stopped';
   await writeSettings();
-  clearInterval(dailyTimer);
+  dailyJob.cancel();
   res.redirect('/');
 })
 
@@ -88,15 +91,15 @@ async function writeSettings() {
   return true;
 }
 
-async function dailyProcess() {
-  try {
-    const productList = await getProductList(shopify);
-    updateTags(productList);
-  } catch (error) {
-    console.log('daily process error: ', error);
-    sendMail();
-  }
-}
+// async function dailyProcess() {
+//   try {
+//     const productList = await getProductList(shopify);
+//     updateTags(productList);
+//   } catch (error) {
+//     console.log('daily process error: ', error);
+//     sendMail();
+//   }
+// }
 
 async function getProductList() {
   let params = { limit: 50, fields: ['id', 'handle', 'tags'] };
