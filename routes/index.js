@@ -2,14 +2,17 @@ var fs = require("fs");
 var express = require('express');
 var router = express.Router();
 require('dotenv').config()
-var mysql = require('mysql');
+// var mysql = require('mysql');
 var nodemailer = require('nodemailer');
 
-var dailyTimer = null;
+var dailyTimer;
 var settings = {
   duringTag: 'countdown',
   endedTag: 'countdown-end',
-  status: 'stopped'
+  status: 'stopped',
+  duringMetaId: 13488352264294,
+  endedMetaId: 13488353443942,
+  statusMetaId: 13488354164838
 };
 
 const Shopify = require('shopify-api-node')
@@ -25,43 +28,48 @@ const shopify = new Shopify({
   }
 });
 
-var connection;
-function handleDisconnect() {
-  connection = mysql.createConnection(process.env.CLEARDB_DATABASE_URL); // Recreate the connection, since
-                                                  // the old one cannot be reused.
+setInterval(stopIdle, 300000);
 
-  connection.connect(function(err) {              // The server is either down
-    if(err) {                                     // or restarting (takes a while sometimes).
-      console.log('error when connecting to db:', err);
-      setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
-    }                                     // to avoid a hot loop, and to allow our node script to
-  });                                     // process asynchronous requests in the meantime.
-                                          // If you're also serving http, display a 503 error.
-  connection.on('error', function(err) {
-    if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-      handleDisconnect();                         // lost due to either server restart, or a
-    } else {                                      // connnection idle timeout (the wait_timeout
-      throw err;                                  // server variable configures this)
-    }
-  });
-}
+// var connection;
+// function handleDisconnect() {
+//   connection = mysql.createConnection(process.env.CLEARDB_DATABASE_URL); // Recreate the connection, since
+//                                                   // the old one cannot be reused.
 
-handleDisconnect();
+//   connection.connect(function(err) {              // The server is either down
+//     if(err) {                                     // or restarting (takes a while sometimes).
+//       console.log('error when connecting to db:', err);
+//       setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
+//     }                                     // to avoid a hot loop, and to allow our node script to
+//   });                                     // process asynchronous requests in the meantime.
+//                                           // If you're also serving http, display a 503 error.
+//   connection.on('error', function(err) {
+//     if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+//       handleDisconnect();                         // lost due to either server restart, or a
+//     } else {                                      // connnection idle timeout (the wait_timeout
+//       throw err;                                  // server variable configures this)
+//     }
+//   });
+// }
+
+// handleDisconnect();
 
 /* GET home page. */
 router.get('/', async (req, res) => {
-  connection.query("SELECT * FROM settings", (err, results) => {
-    if (err) {
-      console.log(err);
-    } else {
-      settings = {
-        duringTag: results[0].during_tag,
-        endedTag: results[0].ended_tag,
-        status: results[0].status ? "started" : "stopped"
-      };
-      res.render('index', {page: 'index', data: settings});
+  const metaData = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: 4989807394918}})
+  metaData.map(md => {
+    if(md.namespace === 'tagSettings') {
+      if(md.key === "duringTag") {
+        settings.duringTag = md.value
+      }
+      if(md.key === "endedTag") {
+        settings.endedTag = md.value
+      }
+      if(md.key === "status") {
+        settings.status = md.value
+      }
     }
   })
+  res.render('index', {page: 'index', data: settings})
 });
 
 router.post('/', async (req, res) => {
@@ -90,16 +98,29 @@ router.get('/stoptimer', async (req, res) => {
 })
 
 async function writeSettings() {
-  const settingStatus = settings.status === 'stopped' ? 0 : 1;
-  connection.query("UPDATE settings SET during_tag=?, ended_tag=?, status=?", [settings.duringTag, settings.endedTag, settingStatus], (err, results) => {
-    if (err) {
-      console.log(err);
-      return false;
-    } else {
-      console.log("Successfully changed the status.");
-      return true;
-    }
+  // const settingStatus = settings.status === 'stopped' ? 0 : 1;
+  // connection.query("UPDATE settings SET during_tag=?, ended_tag=?, status=?", [settings.duringTag, settings.endedTag, settingStatus], (err, results) => {
+  //   if (err) {
+  //     console.log(err);
+  //     return false;
+  //   } else {
+  //     console.log("Successfully changed the status.");
+  //     return true;
+  //   }
+  // })
+  await shopify.metafield.update(settings.duringMetaId, {
+    value: settings.duringTag,
+    value_type: 'string'
+  });
+  await shopify.metafield.update(settings.endedMetaId, {
+    value: settings.endedTag,
+    value_type: 'string'
+  });
+  await shopify.metafield.update(settings.statusMetaId, {
+    value: settings.status,
+    value_type: 'string'
   })
+  return true;
 }
 
 async function dailyProcess() {
@@ -131,6 +152,7 @@ async function getProductList() {
 }
 
 function updateTags(products) {
+  console.log('------got all products-----');
   products.map(async pr => {
     try {
       const metafields = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: pr.id}});
@@ -194,6 +216,11 @@ function sendMail() {
       console.log('Email sent: ' + info.response);
     }
   });
+}
+
+async function stopIdle() {
+  const duringMetaData = await shopify.metafield.get(settings.duringMetaId);
+  return duringMetaData;
 }
 
 module.exports = router;
