@@ -1,8 +1,7 @@
+require('dotenv').config()
 var fs = require("fs");
 var express = require('express');
 var router = express.Router();
-require('dotenv').config()
-// var mysql = require('mysql');
 var nodemailer = require('nodemailer');
 
 var dailyTimer;
@@ -28,35 +27,8 @@ const shopify = new Shopify({
   }
 });
 
-var stopInterval;
-
-// var connection;
-// function handleDisconnect() {
-//   connection = mysql.createConnection(process.env.CLEARDB_DATABASE_URL); // Recreate the connection, since
-//                                                   // the old one cannot be reused.
-
-//   connection.connect(function(err) {              // The server is either down
-//     if(err) {                                     // or restarting (takes a while sometimes).
-//       console.log('error when connecting to db:', err);
-//       setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
-//     }                                     // to avoid a hot loop, and to allow our node script to
-//   });                                     // process asynchronous requests in the meantime.
-//                                           // If you're also serving http, display a 503 error.
-//   connection.on('error', function(err) {
-//     if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-//       handleDisconnect();                         // lost due to either server restart, or a
-//     } else {                                      // connnection idle timeout (the wait_timeout
-//       throw err;                                  // server variable configures this)
-//     }
-//   });
-// }
-
-// handleDisconnect();
-
 /* GET home page. */
 router.get('/', async (req, res) => {
-  clearInterval(stopInterval);
-  stopInterval = setInterval(stopIdle, 20000);
   const metaData = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: 4989807394918}})
   metaData.map(md => {
     if(md.namespace === 'tagSettings') {
@@ -71,6 +43,7 @@ router.get('/', async (req, res) => {
       }
     }
   })
+  console.log('settings: ', settings)
   res.render('index', {page: 'index', data: settings})
 });
 
@@ -86,7 +59,7 @@ router.post('/', async (req, res) => {
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
-  setTimeout(dailyProcess, 5000);
+  dailyProcess();
   dailyTimer = setInterval(dailyProcess, 86400000);
   res.redirect('/');
 })
@@ -100,16 +73,6 @@ router.get('/stoptimer', async (req, res) => {
 })
 
 async function writeSettings() {
-  // const settingStatus = settings.status === 'stopped' ? 0 : 1;
-  // connection.query("UPDATE settings SET during_tag=?, ended_tag=?, status=?", [settings.duringTag, settings.endedTag, settingStatus], (err, results) => {
-  //   if (err) {
-  //     console.log(err);
-  //     return false;
-  //   } else {
-  //     console.log("Successfully changed the status.");
-  //     return true;
-  //   }
-  // })
   await shopify.metafield.update(settings.duringMetaId, {
     value: settings.duringTag,
     value_type: 'string'
@@ -218,11 +181,6 @@ function sendMail() {
       console.log('Email sent: ' + info.response);
     }
   });
-}
-
-async function stopIdle() {
-  const duringMetaData = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: 4989807394918}});
-  console.log('stop idle: ', duringMetaData[0].id)
 }
 
 module.exports = router;
