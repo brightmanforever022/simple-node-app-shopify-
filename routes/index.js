@@ -23,7 +23,7 @@ const shopify = new Shopify({
   timeout: 50000,
   autoLimit: {
       calls: 2,
-      interval: 1000,
+      interval: 2000,
       bucketSize: 35
   }
 });
@@ -56,7 +56,7 @@ var stopInterval;
 /* GET home page. */
 router.get('/', async (req, res) => {
   clearInterval(stopInterval);
-  stopInterval = setInterval(stopIdle, 100000);
+  stopInterval = setInterval(stopIdle, 20000);
   const metaData = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: 4989807394918}})
   metaData.map(md => {
     if(md.namespace === 'tagSettings') {
