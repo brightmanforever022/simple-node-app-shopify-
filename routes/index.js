@@ -28,7 +28,7 @@ const shopify = new Shopify({
   }
 });
 
-setInterval(stopIdle, 300000);
+var stopInterval;
 
 // var connection;
 // function handleDisconnect() {
@@ -55,6 +55,8 @@ setInterval(stopIdle, 300000);
 
 /* GET home page. */
 router.get('/', async (req, res) => {
+  clearInterval(stopInterval);
+  stopInterval = setInterval(stopIdle, 300000);
   const metaData = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: 4989807394918}})
   metaData.map(md => {
     if(md.namespace === 'tagSettings') {
@@ -220,7 +222,7 @@ function sendMail() {
 
 async function stopIdle() {
   const duringMetaData = await shopify.metafield.get(settings.duringMetaId);
-  return duringMetaData;
+  console.log('stop idle: ', duringMetaData.id)
 }
 
 module.exports = router;
