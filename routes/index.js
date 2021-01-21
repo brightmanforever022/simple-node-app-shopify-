@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
   const data = JSON.parse(JSON.stringify(req.body));
   settings.duringTag = data.duringTag;
   settings.endedTag = data.endedTag;
-  await updateSettings();
+  await writeSettings();
   res.redirect('/');
 })
 
@@ -90,7 +90,7 @@ router.get('/stoptimer', async (req, res) => {
   res.redirect('/');
 })
 
-async function writeSettings(data) {
+async function writeSettings() {
   const settingStatus = settings.status === 'stopped' ? 0 : 1;
   connection.query("UPDATE settings SET during_tag=?, ended_tag=?, status=?", [settings.duringTag, settings.endedTag, settingStatus], (err, results) => {
     if (err) {
