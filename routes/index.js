@@ -10,7 +10,7 @@ var settings = {
   duringTag: 'countdown',
   endedTag: 'countdown-end',
   status: 'stopped'
-}
+};
 
 const Shopify = require('shopify-api-node')
 const shopify = new Shopify({
@@ -25,19 +25,19 @@ const shopify = new Shopify({
   }
 });
 
-var connection = mysql.createConnection(process.env.CLEARDB_DATABASE_URL)
+var connection = mysql.createConnection(process.env.CLEARDB_DATABASE_URL);
 
 /* GET home page. */
 router.get('/', async (req, res) => {
   connection.query("SELECT * FROM settings", (err, results) => {
     if (err) {
-      console.log(err)
+      console.log(err);
     } else {
       settings = {
         duringTag: results[0].during_tag,
         endedTag: results[0].ended_tag,
         status: results[0].status ? "started" : "stopped"
-      }
+      };
       res.render('index', {page: 'index', data: settings});
       console.log(results[0]);
     }
@@ -45,28 +45,28 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const data = JSON.parse(JSON.stringify(req.body))
+  const data = JSON.parse(JSON.stringify(req.body));
   settings.duringTag = data.duringTag;
   settings.endedTag = data.endedTag;
   await updateSettings();
-  res.redirect('/')
+  res.redirect('/');
 })
 
 // Start command
 router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
-  setTimeout(dailyProcess, 5000)
-  dailyTimer = setInterval(dailyProcess, 86400000)
-  res.redirect('/')
+  setTimeout(dailyProcess, 5000);
+  dailyTimer = setInterval(dailyProcess, 86400000);
+  res.redirect('/');
 })
 
 // Stop command
 router.get('/stoptimer', async (req, res) => {
   settings.status = 'stopped';
   await writeSettings();
-  clearInterval(dailyTimer)
-  res.redirect('/')
+  clearInterval(dailyTimer);
+  res.redirect('/');
 })
 
 async function writeSettings(data) {
@@ -74,10 +74,10 @@ async function writeSettings(data) {
   connection.query("UPDATE settings SET during_tag=?, ended_tag=?, status=?", [settings.duringTag, settings.endedTag, settingStatus], (err, results) => {
     if (err) {
       console.log(err);
-      return false
+      return false;
     } else {
-      console.log("Successfully Written to File.");
-      return true
+      console.log("Successfully changed the status.");
+      return true;
     }
   })
 }
@@ -85,67 +85,59 @@ async function writeSettings(data) {
 async function dailyProcess() {
   try {
     const productList = await getProductList(shopify);
-    updateTags(productList)
+    updateTags(productList);
   } catch (error) {
-    var transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SERVICE_MAIL_ADDRESS,
-        pass: process.env.SERVICE_MAIL_PASSWORD
-      }
-    });
-    var mailOptions = {
-      from: process.env.FROM_EMAIL,
-      to: process.env.TO_EMAIL,
-      subject: 'error generated',
-      text: 'Please check the app related with the tag updating! There are some errors!'
-    };
-    transporter.sendMail(mailOptions, function(error, info){
-      if (error) {
-        console.log(error);
-      } else {
-        console.log('Email sent: ' + info.response);
-      }
-    });    
+    console.log('daily process error: ', error);
+    sendMail();
   }
 }
 
 async function getProductList() {
   let params = { limit: 50, fields: ['id', 'handle', 'tags'] };
   let products = new Array(0);
-  do {
-    const productListPiece = await shopify.product.list(params);
-    products.push(...productListPiece)
-    params = productListPiece.nextPageParameters;
-  } while (params !== undefined);
+  try {
+    do {
+      const productListPiece = await shopify.product.list(params);
+      products.push(...productListPiece);
+      params = productListPiece.nextPageParameters;
+    } while (params !== undefined);    
+  } catch (error) {
+    console.log('get product list error: ', error)
+    sendMail();
+  }
 
   return products;
 }
 
 function updateTags(products) {
   products.map(async pr => {
-    const metafields = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: pr.id}});
-    metafields.map(mf => {
-      if (mf.namespace === 'c_f' && mf.key === 'countdown_timer') {
-        const metaDate = new Date(mf.value);
-        const currentDate = new Date()
-        let productTags = pr.tags.split(', ')
-        
-        if (currentDate.getTime() < metaDate.getTime()) { // during countdown
-          if(!productTags.includes(settings.duringTag)) {
-            productTags.push(settings.duringTag);
+    try {
+      const metafields = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: pr.id}});
+      metafields.map(mf => {
+        if (mf.namespace === 'c_f' && mf.key === 'countdown_timer') {
+          const metaDate = new Date(mf.value);
+          const currentDate = new Date();
+          let productTags = pr.tags.split(', ');
+          
+          if (currentDate.getTime() < metaDate.getTime()) { // during countdown
+            if(!productTags.includes(settings.duringTag)) {
+              productTags.push(settings.duringTag);
+            }
+          } else { // ended of countdown
+            productTags.remove(settings.duringTag);
+            if(!productTags.includes(settings.endedTag)) {
+              productTags.push(settings.endedTag);
+            }
           }
-        } else { // ended of countdown
-          productTags.remove(settings.duringTag);
-          if(!productTags.includes(settings.endedTag)) {
-            productTags.push(settings.endedTag);
-          }
+          shopify.product.update(pr.id, {
+            tags: productTags.join(', ')
+          }).then(result => console.log('tag update result: ', result.id, result.tags));
         }
-        shopify.product.update(pr.id, {
-          tags: productTags.join(', ')
-        }).then(result => console.log('tag update result: ', result.id, result.tags))
-      }
-    })
+      });      
+    } catch (error) {
+      console.log('product update error: ', error)
+      sendMail();
+    }
   })
 }
 
@@ -159,5 +151,28 @@ Array.prototype.remove = function() {
   }
   return this;
 };
+
+function sendMail() {
+  var transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.SERVICE_MAIL_ADDRESS,
+      pass: process.env.SERVICE_MAIL_PASSWORD
+    }
+  });
+  var mailOptions = {
+    from: process.env.FROM_EMAIL,
+    to: process.env.TO_EMAIL,
+    subject: 'error generated',
+    text: 'Please check the app related with the tag updating! There are some errors!'
+  };
+  transporter.sendMail(mailOptions, function(err, info){
+    if (err) {
+      console.log(err);
+    } else {
+      console.log('Email sent: ' + info.response);
+    }
+  });
+}
 
 module.exports = router;
