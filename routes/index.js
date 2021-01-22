@@ -61,10 +61,10 @@ router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
   dailyJob = new CronJob(
-    '0 0 * * 1', //cron time
+    '0 15 0 * * *', //cron time
     dailyProcess, //replace with your function that you want to call
     null, //oncomplete
-    false, //start flag
+    true, //start flag
     'America/Los_Angeles',// timezone
   );
   dailyJob.start();
