@@ -61,11 +61,9 @@ router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
   dailyJob = new CronJob(
-    '0 10 0 * * *', //cron time
-    dailyProcess, //replace with your function that you want to call
-    null, //oncomplete
-    true, //start flag
-    'America/Los_Angeles',// timezone
+    '0 18 * * * *', function() {
+      console.log('wahaha');
+    }, null, true, 'America/Los_Angeles'
   );
   dailyJob.start();
   res.redirect('/');
