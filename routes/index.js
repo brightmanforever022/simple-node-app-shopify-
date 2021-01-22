@@ -61,7 +61,7 @@ router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
   dailyJob = new CronJob(
-    '0 15 0 * * *', //cron time
+    '0 10 0 * * *', //cron time
     dailyProcess, //replace with your function that you want to call
     null, //oncomplete
     true, //start flag
