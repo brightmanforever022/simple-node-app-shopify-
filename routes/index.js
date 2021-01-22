@@ -61,7 +61,7 @@ router.get('/starttimer', async (req, res) => {
   settings.status = 'started';
   await writeSettings();
   dailyJob = new CronJob(
-    '0 20 * * * *', dailyProcess,
+    '0 0 0 * * *', dailyProcess,
     null, true, 'America/Los_Angeles'
   );
   dailyJob.start();
