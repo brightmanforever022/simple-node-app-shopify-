@@ -82,24 +82,28 @@ router.post('/orderCreated', async (req, res) => {
   res.status(200).send('received');
   var createdOrderInfo = req.body;
   await sleep(1000);
-  var orderTags = createdOrderInfo.tags;
+  var orderTags = createdOrderInfo.tags ? createdOrderInfo.tags.split(', ') : [];
   var lineItems = createdOrderInfo.line_items;
   var productIdList = lineItems.map(lineItem => lineItem.product_id);
   productIdList = productIdList.filter(idItem => !!idItem);
   const orderId = createdOrderInfo.id;
   const productId = productIdList.length > 0 ? productIdList[0] : null;
   
-  // productId = 4991417876582
+  /* var orderTags = ''.split(', ')
+  productId = 4991417876582 */
+
   if(!!productId) {
     const metafields = await shopify.metafield.list({metafield: {owner_resource: 'product', owner_id: productId}});
+    console.log('order ID: ', orderId);
+    console.log('product ID: ', productId);
     metafields.map(mf => {
       if (mf.namespace === 'c_f' && mf.key === 'countdown_timer') {
         const metaDate = new Date(mf.value);
         const orderMetaDate = dateFormat(metaDate, 'mm-dd-yyyy')
-        orderTags = orderTags.split(', ').push(orderMetaDate.toString()).join(', ')
+        orderTags.push(orderMetaDate.toString())
         shopify.order.update(orderId, {
-          tags: orderTags
-        }).then(result => console.log('tag update result: ', result.id, result.tags));
+          tags: orderTags.join(', ')
+        }).then(result => console.log('============tag update result=============: ', result.id, result.tags));
       }
     });
   }
