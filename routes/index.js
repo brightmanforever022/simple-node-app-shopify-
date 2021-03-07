@@ -59,22 +59,24 @@ router.post('/', async (req, res) => {
 
 // Start command
 router.get('/starttimer', async (req, res) => {
-  settings.status = 'started';
+  console.log('start timer')
+  /* settings.status = 'started';
   await writeSettings();
   dailyJob = new CronJob(
     '0 0 0 * * *', dailyProcess,
     null, true, 'America/Los_Angeles'
   );
   dailyJob.start();
-  res.redirect('/');
+  res.redirect('/'); */
 })
 
 // Stop command
 router.get('/stoptimer', async (req, res) => {
-  settings.status = 'stopped';
+  console.log('stop timer')
+  /* settings.status = 'stopped';
   await writeSettings();
   dailyJob.stop();
-  res.redirect('/');
+  res.redirect('/'); */
 })
 
 // Get webhook from store
